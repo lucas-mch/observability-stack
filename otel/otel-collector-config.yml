@@ -1,0 +1,45 @@
+﻿receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+exporters:
+  otlphttp/newrelic:
+    endpoint: https://otlp.nr-data.net
+    headers:
+      api-key: ${OTEL_API_KEY}
+
+  splunk_hec:
+    token: ${SPLUNK_HEC_TOKEN}
+    endpoint: https://splunk:8088
+    source: otel-collector
+    sourcetype: otel
+    index: main
+    tls:
+      insecure_skip_verify: true
+
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/newrelic, splunk_hec, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/newrelic, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/newrelic, splunk_hec, debug]
