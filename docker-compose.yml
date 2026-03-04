@@ -4,7 +4,7 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -106,39 +106,6 @@ services:
     networks:
       - observability
 
-  observability-demo:
-    build:
-      context: ../../IdeaProjects/observability
-      dockerfile: Dockerfile
-    container_name: observability-demo
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - OTEL_SERVICE_NAME=observability-demo
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_TRACES_EXPORTER=otlp
-    depends_on:
-      - otel-collector
-    networks:
-      - observability
-
-  load-generator:
-    build:
-      context: ./load-generator
-      dockerfile: Dockerfile
-    container_name: load-generator
-    restart: unless-stopped
-    environment:
-      - TARGET_URL=http://observability-demo:8080
-      - REQUESTS_PER_SECOND=3
-    depends_on:
-      - observability-demo
-    networks:
-      - observability
 
 volumes:
   grafana-data:

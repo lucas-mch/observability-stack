@@ -6,15 +6,13 @@ Guia para agentes e desenvolvedores integrarem backends nesta stack de observabi
 
 | Serviço | Porta | Função |
 |---|---|---|
-| Grafana | 3000 | Visualização (dashboards) |
+| Grafana | 3001 | Visualização (dashboards) |
 | Prometheus | 9090 | Coleta e storage de métricas |
 | Loki | 3100 | Aggregation de logs |
 | Promtail | — | Coleta logs dos containers Docker |
 | node-exporter | 9100 | Métricas do host (CPU, RAM, disco) |
 | OTEL Collector | 4317 (gRPC), 4318 (HTTP) | Recebe traces/metrics/logs via OTLP e exporta para New Relic e Splunk |
 | Splunk | 8000 (UI), 8088 (HEC) | Análise de logs e traces |
-| load-generator | — | Gerador de carga para o `observability-demo` |
-| observability-demo | 8080 | App de referência (Spring Boot + OTEL) |
 
 Rede Docker interna: `observability`
 
@@ -40,8 +38,6 @@ Variáveis disponíveis:
 ```bash
 docker compose up -d
 ```
-
-O `observability-demo` requer um build local em `../../IdeaProjects/observability`. Se não existir, comente ou remova o serviço `observability-demo` e `load-generator` antes de subir.
 
 ## Como integrar um backend novo
 
@@ -137,7 +133,7 @@ Para enriquecer as labels, adicione labels Docker ao serviço:
 
 ### 5. Visualizar no Grafana
 
-Acesse `http://localhost:3000` (admin/admin na primeira vez).
+Acesse `http://localhost:3001` (admin/admin na primeira vez).
 
 Datasources a configurar manualmente (ou via provisioning em `grafana/provisioning/`):
 
