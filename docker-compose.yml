@@ -25,6 +25,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
     networks:
       - observability
 
