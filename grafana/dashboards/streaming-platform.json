@@ -1,0 +1,487 @@
+{
+  "title": "Streaming Platform — Backend",
+  "uid": "streaming-platform",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-30m", "to": "now" },
+  "tags": ["streaming", "spring-boot", "backend"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(up{job=\"streaming-platform\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": false,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "HTTP — RED (Rate · Errors · Duration)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 100
+    },
+    {
+      "id": 1,
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 1, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (uri, method)",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error Rate (5xx)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 1, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\", status=~\"5..\"}[1m])) by (uri, status)",
+          "legendFormat": "{{status}} {{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latência P50 / P95 / P99",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 1, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "HTTP — Requests por Status (últimos 5m)",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[5m])) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Requests Ativos",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 8, "w": 3, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(http_server_requests_active_seconds_active_count{job=\"streaming-platform\", instance=~\"$instance\"})",
+          "legendFormat": "ativos"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Taxa de Erro %",
+      "type": "stat",
+      "gridPos": { "x": 9, "y": 8, "w": 3, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[5m]))",
+          "legendFormat": "error rate"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "JVM",
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 101
+    },
+    {
+      "id": 10,
+      "title": "Heap — Usado / Committed / Max",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 15, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" }
+      },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"streaming-platform\", instance=~\"$instance\", area=\"heap\"}) by (id)",
+          "legendFormat": "usado {{id}}"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{job=\"streaming-platform\", instance=~\"$instance\", area=\"heap\"})",
+          "legendFormat": "committed"
+        },
+        {
+          "expr": "sum(jvm_memory_max_bytes{job=\"streaming-platform\", instance=~\"$instance\", area=\"heap\"})",
+          "legendFormat": "max"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "GC — Pause Time",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 15, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "{{action}} {{cause}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Threads JVM",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 15, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "live"
+        },
+        {
+          "expr": "jvm_threads_daemon_threads{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "daemon"
+        },
+        {
+          "expr": "jvm_threads_peak_threads{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "peak"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "GC Overhead %",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 22, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.25 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "jvm_gc_overhead_percent{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "gc overhead"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "CPU — Sistema / Processo",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 22, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1 }
+      },
+      "targets": [
+        {
+          "expr": "system_cpu_usage{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "sistema"
+        },
+        {
+          "expr": "process_cpu_usage{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "processo"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Logback — Logs por nível (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 22, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "rate(logback_events_total{job=\"streaming-platform\", instance=~\"$instance\"}[1m]) * 60",
+          "legendFormat": "{{level}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Banco de Dados — HikariCP",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 102
+    },
+    {
+      "id": 20,
+      "title": "Conexões — Ativas / Idle / Pending",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 29, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "ativas"
+        },
+        {
+          "expr": "hikaricp_connections_idle{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "idle"
+        },
+        {
+          "expr": "hikaricp_connections_pending{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "pending"
+        },
+        {
+          "expr": "hikaricp_connections_max{job=\"streaming-platform\", instance=~\"$instance\"}",
+          "legendFormat": "max"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Connection Acquire Time (p95)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 29, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(hikaricp_connections_acquire_seconds_sum{job=\"streaming-platform\", instance=~\"$instance\"}[1m]) / rate(hikaricp_connections_acquire_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "avg acquire time"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Connection Timeouts",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 29, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(hikaricp_connections_timeout_total{job=\"streaming-platform\", instance=~\"$instance\"}[5m])",
+          "legendFormat": "timeouts (5m)"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Spring Security & Auth",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 103
+    },
+    {
+      "id": 30,
+      "title": "Autorizações — Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 37, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(spring_security_authorizations_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (result)",
+          "legendFormat": "{{result}}"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "title": "JWT Filter — Requisições (rate/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 37, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "rate(spring_security_filterchains_JwtAuthenticationFilter_before_total{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "JWT filter (before)"
+        },
+        {
+          "expr": "rate(spring_security_filterchains_JwtAuthenticationFilter_after_total{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "JWT filter (after)"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "Secured Requests — Latência (avg)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 37, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "rate(spring_security_http_secured_requests_seconds_sum{job=\"streaming-platform\", instance=~\"$instance\"}[1m]) / rate(spring_security_http_secured_requests_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "avg latência secured"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Spring Data — Repositórios",
+      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 1 },
+      "collapsed": false,
+      "id": 104
+    },
+    {
+      "id": 40,
+      "title": "Repository Calls — Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 45, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(spring_data_repository_invocations_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])) by (repository, method)",
+          "legendFormat": "{{repository}}.{{method}}"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "title": "Repository Calls — Latência avg",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 45, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "rate(spring_data_repository_invocations_seconds_sum{job=\"streaming-platform\", instance=~\"$instance\"}[1m]) / rate(spring_data_repository_invocations_seconds_count{job=\"streaming-platform\", instance=~\"$instance\"}[1m])",
+          "legendFormat": "{{repository}}.{{method}}"
+        }
+      ]
+    }
+  ]
+}
