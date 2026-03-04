@@ -6,8 +6,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
@@ -79,11 +79,11 @@ services:
     ports:
       - "8000:8000"
       - "8088:8088"
+    env_file:
+      - .env
     environment:
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
       - SPLUNK_LICENSE_URI=Free
-      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
     volumes:
       - splunk-data:/opt/splunk/var
     networks:
@@ -96,9 +96,47 @@ services:
     ports:
       - "4317:4317"
       - "4318:4318"
+    env_file:
+      - .env
     volumes:
       - ./otel/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro
     command: --config=/etc/otelcol-contrib/config.yaml
+    depends_on:
+      - splunk
+    networks:
+      - observability
+
+  observability-demo:
+    build:
+      context: ../../IdeaProjects/observability
+      dockerfile: Dockerfile
+    container_name: observability-demo
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_SERVICE_NAME=observability-demo
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER=otlp
+    depends_on:
+      - otel-collector
+    networks:
+      - observability
+
+  load-generator:
+    build:
+      context: ./load-generator
+      dockerfile: Dockerfile
+    container_name: load-generator
+    restart: unless-stopped
+    environment:
+      - TARGET_URL=http://observability-demo:8080
+      - REQUESTS_PER_SECOND=3
+    depends_on:
+      - observability-demo
     networks:
       - observability
 
