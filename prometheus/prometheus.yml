@@ -14,4 +14,4 @@ scrape_configs:
   - job_name: "observability-demo"
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["observability-demo:8080"]
