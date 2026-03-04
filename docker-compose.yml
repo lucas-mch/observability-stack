@@ -83,6 +83,7 @@ services:
       - .env
     environment:
       - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
       - SPLUNK_LICENSE_URI=Free
     volumes:
       - splunk-data:/opt/splunk/var
